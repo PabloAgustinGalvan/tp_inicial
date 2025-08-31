@@ -1,8 +1,0 @@
-services:
-  - type: web
-    name: tp_inicial
-    env: docker
-    plan: free
-    region: oregon
-    dockerfilePath: Dockerfile
-    autoDeploy: true
