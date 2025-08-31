@@ -1,60 +1,35 @@
-import cv2
+import face_recognition
 import json
-import numpy as np
 import os
-from deepface import DeepFace
+import numpy as np
 
-# Define la ruta del archivo de imagen y del archivo de embeddings
-RUTA_IMAGEN = "aaa.jpg"  # <--- CAMBIA ESTA RUTA
 RUTA_EMBEDDINGS = "data/embeddings.json"
+UMBRAL_SIMILITUD = 0.6  # Ajustable según tu tolerancia
 
+def generar_embedding(ruta_imagen):
+    """
+    Genera el embedding facial desde una imagen y verifica si ya existe uno similar.
+    """
+    image = face_recognition.load_image_file(ruta_imagen)
+    encodings = face_recognition.face_encodings(image)
 
-def generar_embedding_desde_foto():
-    """Genera el embedding de una cara a partir de una imagen y lo guarda."""
+    if not encodings:
+        raise RuntimeError("No se detectó ninguna cara en la imagen.")
 
-    # 1. Carga la imagen desde el disco duro
-    if not os.path.exists(RUTA_IMAGEN):
-        print(f"Error: La imagen no se encontró en la ruta: {RUTA_IMAGEN}")
-        return
+    nuevo_embedding = encodings[0]
 
-    try:
-        # Genera el embedding de la cara en la imagen
-        embedding = DeepFace.represent(
-            img_path=RUTA_IMAGEN,
-            model_name="Facenet",
-            enforce_detection=True
-        )[0]["embedding"]
+    # Cargar base existente
+    if os.path.exists(RUTA_EMBEDDINGS):
+        with open(RUTA_EMBEDDINGS, "r") as f:
+            base = json.load(f)
+    else:
+        base = {}
 
-        # 2. Pide al usuario que ingrese el nombre del empleado
-        nombre = input("¡Cara detectada! Ingresa tu nombre para guardar el embedding: ")
-        if not nombre:
-            print("Nombre no válido. El embedding no se guardará.")
-            return
+    # Comparar con embeddings existentes
+    for legajo, datos in base.items():
+        existente = np.array(datos["embedding"])
+        distancia = np.linalg.norm(nuevo_embedding - existente)
+        if distancia < UMBRAL_SIMILITUD:
+            raise RuntimeError(f"Ya existe un empleado con embedding similar (legajo: {legajo})")
 
-        # 3. Carga los embeddings existentes o crea un diccionario vacío
-        if os.path.exists(RUTA_EMBEDDINGS):
-            with open(RUTA_EMBEDDINGS, "r") as f:
-                data = json.load(f)
-        else:
-            data = {}
-
-        # 4. Guarda el nuevo embedding en el diccionario
-        data[nombre] = embedding
-
-        # 5. Escribe el diccionario actualizado en el archivo JSON
-        with open(RUTA_EMBEDDINGS, "w") as f:
-            json.dump(data, f, indent=4)
-        print(f"Embedding de '{nombre}' guardado exitosamente en '{RUTA_EMBEDDINGS}'.")
-
-    except ValueError:
-        print("No se detectó una cara en la imagen. Asegúrate de que la foto cumpla con los requisitos.")
-        print("Consejo: La foto debe estar bien iluminada y tener la cara de frente.")
-    except Exception as e:
-        print(f"Ocurrió un error inesperado: {e}")
-
-
-if __name__ == "__main__":
-    if not os.path.exists("data"):
-        os.makedirs("data")
-
-    generar_embedding_desde_foto()
+    return nuevo_embedding.tolist()

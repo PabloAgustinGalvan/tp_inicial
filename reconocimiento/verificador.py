@@ -1,10 +1,22 @@
-from .embedding import cargar_embeddings, generar_embedding, comparar_embeddings
+from reconocimiento.embedding import EmbeddingManager
 
-def reconocer_empleado(frame, umbral=0.7):
-    base = cargar_embeddings()
-    emb_capturado = generar_embedding(frame)
+def reconocer_empleado(frame, legajo, umbral=0.7):
+    manager = EmbeddingManager()
+    base = manager.cargar_embeddings()
 
-    for nombre, emb_guardado in base.items():
-        if comparar_embeddings(emb_capturado, emb_guardado, threshold=umbral):
-            return nombre
-    return None
+    if legajo not in base:
+        return {"estado": "legajo no encontrado", "coincide": False}
+
+    try:
+        emb_capturado = manager.generar_embedding(frame)
+    except ValueError:
+        return {"estado": "no se pudo generar embedding", "coincide": False}
+
+    emb_guardado = base[legajo]["embedding"]
+    coincide = manager.comparar_embeddings(emb_capturado, emb_guardado, threshold=umbral)
+
+    return {
+        "estado": "coincidencia" if coincide else "no coincide",
+        "coincide": coincide,
+        "legajo": legajo if coincide else None
+    }
