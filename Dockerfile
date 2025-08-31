@@ -2,6 +2,7 @@ FROM python:3.10-slim
 
 # Instala dependencias del sistema necesarias para compilar dlib
 RUN apt-get update && apt-get install -y \
+    git \
     build-essential \
     cmake \
     libboost-all-dev \
