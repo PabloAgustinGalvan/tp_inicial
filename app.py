@@ -20,6 +20,9 @@ import os
 app = Flask(__name__)
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
+@app.route('/')
+def home():
+    return "Backend activo"
 def cargar_base_empleados():
     ruta = os.path.normpath("data/embeddings.json")
     if not os.path.exists(ruta):
